@@ -3,14 +3,9 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 from pages.login_page import LoginPage
 from pages.dashboard import DashboardPage
 from pages.pim import PimPage
-
 
 @pytest.fixture
 def setup():
@@ -20,43 +15,31 @@ def setup():
     yield driver
     driver.quit()
 
-
 def test_add_and_verify_employees(setup):
     driver = setup
-    wait = WebDriverWait(driver, 10)
-
     login = LoginPage(driver)
     dashboard = DashboardPage(driver)
     pim = PimPage(driver)
 
+    
     login.enter_username("Admin")
     login.enter_password("admin123")
     login.click_login()
 
+
     dashboard.go_to_pim()
 
     employees = [("John", "Doe"), ("Jane", "Smith"), ("David", "Brown")]
-
+    
+   
     for fname, lname in employees:
         pim.add_employee(fname, lname)
 
-        # Wait until redirected to Personal Details
-        wait.until(EC.visibility_of_element_located(
-            (By.XPATH, "//h6[text()='Personal Details']")
-        ))
-
-        # Go back to Add Employee
-        dashboard.go_to_pim()
 
     for fname, lname in employees:
         pim.search_employee(fname)
-
-        # Wait for first name to appear in search results
-        result = wait.until(EC.visibility_of_element_located(
-            (By.XPATH, f"//div[@role='row']//div[normalize-space()='{fname}']")
-        ))
-
-        assert result.text.strip() == fname, f"{fname} not found!"
+        assert pim.search_employee(fname), f"Employee '{fname}' not found in search results"
         print(f"{fname} Verified")
 
+   
     dashboard.logout()
